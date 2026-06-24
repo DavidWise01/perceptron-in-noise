@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Perceptron in Noise — thermodynamic computing, where heat is the engine</title>
+<meta name="description" content="A thermodynamic / probabilistic perceptron — beyond the single p-bit to a whole network that samples. A Boltzmann machine relaxes to P(state) ∝ e^(−E/kT): thermal noise drives exploration, the couplings (weights) shape the energy landscape, and cooling (annealing) settles it onto answers. The gift: it doesn't compute one output, it samples a distribution — native Bayesian inference and optimization, with noise as the engine, not the enemy. Landauer's kT·ln2 (2.87 zJ) links it to reversible logic. Confidence-tiered: STRONG (Boltzmann/Ising, annealing) / MIDDLING (thermodynamic hardware, Extropic/Normal) / FRONTIER (a clear win over GPUs). David Lee Wise, two-layer honest.">
+<style>
+  :root{--bg:#120705;--panel:#1d0d08;--panel2:#26120b;--edge:#43201a;--ink:#f7e9e2;--dim:#cca598;--faint:#8a5f50;
+    --hot:#ff6b3d;--hot2:#ffb08c;--cool:#5a9bff;--boltz:#ffc04d;--ok:#7fe07f;--rose:#fb7185;--amber:#fbbf24;--ember:#fb923c;
+    --mono:'SFMono-Regular',ui-monospace,'Cascadia Code',Menlo,Consolas,monospace;--serif:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--serif);line-height:1.55;background-image:radial-gradient(1100px 560px at 75% -10%,#2e0f06 0%,transparent 55%);}
+  .wrap{max-width:1040px;margin:0 auto;padding:42px 26px 90px}
+  header{border-bottom:1px solid var(--edge);padding-bottom:20px;margin-bottom:22px}
+  .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--hot);opacity:.95}
+  h1{font-size:33px;line-height:1.12;margin:.3em 0 .16em;font-weight:600}h1 em{color:var(--hot2);font-style:italic}
+  .sub{color:var(--dim);font-size:15.5px;max-width:78ch}
+  .lin{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-top:13px}.lin b{color:var(--hot)}
+  .verdicts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:20px 0}@media(max-width:720px){.verdicts{grid-template-columns:1fr}}
+  .vc{border:1px solid var(--edge);border-radius:11px;padding:12px 14px;border-top-width:3px;background:rgba(29,13,8,.6)}
+  .vc .badge{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.12em}
+  .vc.s{border-top-color:var(--ok)}.vc.s .badge{color:var(--ok)} .vc.m{border-top-color:var(--amber)}.vc.m .badge{color:var(--amber)} .vc.f{border-top-color:var(--ember)}.vc.f .badge{color:var(--ember)}
+  .vc p{font-size:12px;color:var(--dim);margin:5px 0 0;line-height:1.45}.vc p b{color:var(--ink)}
+  section{margin:34px 0}
+  h2{font-size:13px;font-family:var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--hot2);border-left:2px solid var(--hot);padding-left:11px;margin:0 0 6px}
+  .lede{color:var(--dim);font-size:15px;margin:0 0 16px;max-width:80ch}
+  .panel{background:linear-gradient(180deg,var(--panel),#0f0604);border:1px solid var(--edge);border-radius:14px;padding:20px;box-shadow:0 24px 60px -40px #000}
+  .controls{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-bottom:14px}
+  button{font-family:var(--mono);font-size:12px;color:var(--ink);background:#28130d;border:1px solid var(--edge);border-radius:8px;padding:8px 13px;cursor:pointer;transition:.15s}
+  button:hover{background:#341a11;border-color:var(--hot)}button.on{background:#7a3318;border-color:var(--hot2);color:#fff}
+  label.sl{font-family:var(--mono);font-size:11px;color:var(--dim);display:flex;align-items:center;gap:8px}input[type=range]{accent-color:var(--hot);width:150px}
+  canvas{display:block;width:100%;border-radius:10px;background:#0d0604;border:1px solid var(--edge)}
+  .cap{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:7px}
+  .pgrid{display:grid;grid-template-columns:1.2fr .8fr;gap:22px}@media(max-width:820px){.pgrid{grid-template-columns:1fr}}
+  .reads{display:flex;flex-direction:column;gap:12px}
+  .stat .v{font-family:var(--mono);font-size:24px;font-weight:600}.stat .k{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  .eq{font-family:var(--mono);font-size:13px;color:var(--hot2);background:#1d0d08;border:1px solid var(--edge);border-radius:8px;padding:9px 11px;display:inline-block;margin:4px 0}
+  .note{color:var(--dim);font-size:13.5px;border-left:2px solid var(--edge);padding-left:13px;margin:14px 0 0}
+  .map{font-family:var(--mono);font-size:12.5px;display:grid;grid-template-columns:auto auto;gap:4px 14px;margin:8px 0}.map b{color:var(--hot)}.map span{color:var(--dim)}
+  footer{margin-top:42px;border-top:1px solid var(--edge);padding-top:18px;color:var(--faint);font-family:var(--mono);font-size:11px;line-height:1.7}
+  footer a,.bar a{color:var(--hot)}.bar{font-family:var(--mono);font-size:11.5px;margin-bottom:14px}.bar a{text-decoration:none;border-bottom:1px dotted #53281d}
+  code{font-family:var(--mono);color:var(--hot2);background:#1d0d08;padding:1px 5px;border-radius:5px}
+  .series{font-family:var(--mono);font-size:11px;color:var(--faint);text-align:center;margin-top:8px}.series b{color:var(--hot2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="bar"><a href="https://davidwise01.github.io/ud0/">◄ UD0</a> &nbsp; <a href="https://davidwise01.github.io/perceptron-in-a-spin/">spin (the p-bit)</a> &nbsp; <a href="https://davidwise01.github.io/perceptron-in-reverse/">reverse →</a> &nbsp; <a href="https://davidwise01.github.io/the-gather/">the gather</a></div>
+<header>
+  <div class="kicker">Perceptron theory · the thermodynamic body · noise as engine</div>
+  <h1>The perceptron in <em>noise</em></h1>
+  <div class="sub">The spin body gave one stochastic magnet a sigmoid. Wire a whole <em>network</em> of them together and something larger appears: a machine that doesn't compute an answer so much as <em>relax into one</em>. Thermal noise jostles every unit; the couplings — the weights — tilt the energy landscape; and the system wanders, then, as you cool it, settles where the energy is low. It samples the Boltzmann distribution directly. Here the heat isn't the enemy you fight to keep bits stable. The heat is the engine.</div>
+  <div class="lin"><b>weights</b> = couplings (the energy landscape) &nbsp;·&nbsp; <b>compute</b> = thermal relaxation to P(s) ∝ e<sup>−E/kT</sup> &nbsp;·&nbsp; <b>knob</b> = temperature (anneal) &nbsp;·&nbsp; output = a sample</div>
+</header>
+<div class="verdicts">
+  <div class="vc s"><span class="badge">✓ STRONG</span><p><b>Boltzmann, Ising, annealing.</b> That a thermal system samples <code>e<sup>−E/kT</sup></code> is bedrock statistical mechanics; simulated &amp; quantum annealers exist (D-Wave). The math is a century old and exact.</p></div>
+  <div class="vc m"><span class="badge">◐ MIDDLING</span><p><b>Thermodynamic hardware.</b> Dedicated noise-native chips (Extropic, Normal Computing) are <b>early prototypes</b> — promising for sampling and Bayesian inference, unproven at scale.</p></div>
+  <div class="vc f"><span class="badge">◔ FRONTIER</span><p><b>Beating the GPU.</b> Whether thermodynamic silicon wins on real workloads — versus just doing on-chip what a GPU samples in software — is <b>open</b>.</p></div>
+</div>
+
+<section>
+  <h2>I · The landscape, and the heat that explores it</h2>
+  <p class="lede">Picture the state of the machine as a ball on an energy landscape the weights have shaped. Cold, it sits in the nearest dip. Warm, thermal kicks send it hopping over ridges, exploring. Over time the fraction of time spent at each spot follows <span class="eq">P(state) ∝ e<sup>−E / kT</sup></span> — low-energy states are visited most. Drag the temperature down and watch the wandering collapse onto the minimum: that's annealing, and it's how the machine "decides."</p>
+  <div class="panel">
+    <div class="controls"><label class="sl">temperature T <input type="range" id="T" min="2" max="200" value="80"><span class="mono" id="tv" style="color:var(--hot2)">0.80</span></label><button id="run" class="on">❚❚ running</button></div>
+    <div class="pgrid">
+      <div><canvas id="land" width="560" height="260"></canvas><div class="cap">the energy landscape · the <b style="color:var(--hot)">thermal ball</b> hops (hot) or settles (cold) · the histogram = the sampled Boltzmann distribution</div></div>
+      <div class="reads">
+        <div class="stat"><div class="v" id="reg" style="color:var(--hot2);font-size:18px">exploring</div><div class="k">regime</div></div>
+        <div class="map"><b>landscape</b><span>= the weights</span><b>noise</b><span>= temperature</span><b>answer</b><span>= a low-energy sample</span></div>
+        <div class="note">High T is creativity — it escapes bad local dips. Low T is commitment. Schedule the cooling well and the ball finds the global minimum; cool too fast and it freezes in a so-so one. Annealing is the whole art.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>II · A network that samples</h2>
+  <p class="lede">Now the real thing: many binary units, each flipping with a probability set by its neighbours' pull and the temperature — <code>P(+1) = σ(2·field/T)</code>. No unit decides; the <em>population</em> does, settling toward states the couplings favour. This is a Boltzmann machine: set the weights and it doesn't return one number — it <b>draws samples</b> from a whole distribution. That's native generative modelling and inference, in physics.</p>
+  <div class="panel">
+    <div class="controls"><label class="sl">temperature <input type="range" id="T2" min="2" max="200" value="60"></label><button id="anneal">❄ anneal (cool)</button><button id="run2" class="on">❚❚ running</button></div>
+    <canvas id="net" width="900" height="220"></canvas>
+    <div class="cap">stochastic units (ferromagnetic couplings) flipping by σ(2·field/T) · energy trace below · cooling settles it onto a low-energy consensus</div>
+    <div class="reads" style="flex-direction:row;gap:26px;margin-top:10px"><div class="stat"><div class="v" id="energy" style="color:var(--cool)">—</div><div class="k">system energy</div></div><div class="stat"><div class="v" id="t2v" style="color:var(--hot2)">0.60</div><div class="k">temperature</div></div></div>
+  </div>
+</section>
+
+<section>
+  <h2>III · The gift, and the bill</h2>
+  <p class="lede">The gift is that <b>noise does the work</b>: sampling, optimisation, Bayesian inference fall out of letting a physical system equilibrate, no algorithm grinding it out step by step. The bill comes due as <b>Landauer's principle</b> — every bit this machine <em>erases</em> dumps at least <code>kT·ln2 ≈ 2.87 zJ</code> of heat. Which raises the obvious next question, and the final body: what if you never erased at all?</p>
+  <div class="map" style="font-size:13px;max-width:560px"><b>the gift</b><span>= native sampling / annealing / inference</span><b>the engine</b><span>= thermal noise, not fought but used</span><b>the bill</b><span>= Landauer kT·ln2 per erased bit</span><b>status</b><span>= theory solid, hardware early</span></div>
+  <div class="series" style="text-align:left;margin-top:14px">…josephson · cubi · two-cubi · sound · DNA · N-cubi · <b>noise</b> · <a href="https://davidwise01.github.io/perceptron-in-reverse/" style="color:var(--hot)">reverse →</a></div>
+</section>
+<footer>
+  THE PERCEPTRON IN NOISE · the thermodynamic body · two-layer honest<br>
+  verified in Node · &lt;s&gt;=tanh(field/T) sampling · simulated annealing finds the Ising ground state · Landauer kT·ln2 = 2.87 zJ at 300 K<br>
+  Boltzmann machines (Hinton &amp; Sejnowski) · Ising / simulated annealing (Kirkpatrick 1983) · thermodynamic computing hardware (Extropic, Normal Computing — early) · noise as resource<br>
+  siblings: <a href="https://davidwise01.github.io/perceptron-in-a-spin/">spin</a> · <a href="https://davidwise01.github.io/perceptron-in-reverse/">reverse</a> · <a href="https://davidwise01.github.io/the-gather/">the gather</a> · governor David Lee Wise · CC-BY-ND-4.0
+</footer>
+</div>
+<script>
+"use strict";
+function fit(cv){const r=cv.getBoundingClientRect();const d=window.devicePixelRatio||1;cv.width=r.width*d;cv.height=r.height*d;const g=cv.getContext('2d');g.setTransform(d,0,0,d,0,0);return{g,w:r.width,h:r.height};}
+// MODULE I : landscape + thermal ball
+(function(){
+  const cv=document.getElementById('land');let T=0.8,running=true,x=0.3,hist=new Array(60).fill(0),t=0;
+  function U(x){return Math.sin(x*9)*0.5*Math.exp(-Math.pow((x-.5)*1.3,2)) + (x-0.55)*(x-0.55)*2 - Math.cos(x*4)*0.3;}
+  function draw(){const{g,w,h}=fit(cv);g.clearRect(0,0,w,h);if(running)t++;
+    const padB=46,padT=14;
+    // landscape
+    let mn=1e9,mx=-1e9;for(let i=0;i<=100;i++){const u=U(i/100);if(u<mn)mn=u;if(u>mx)mx=u;}
+    const Y=u=>padT+(u-mn)/(mx-mn)*(h-padT-padB);
+    g.strokeStyle='#ff6b3d';g.lineWidth=2;g.beginPath();for(let i=0;i<=200;i++){const xx=i/200;const X=xx*w,YY=Y(U(xx));i?g.lineTo(X,YY):g.moveTo(X,YY);}g.stroke();
+    // thermal ball: Metropolis
+    if(running){for(let k=0;k<3;k++){const xn=Math.max(0,Math.min(1,x+(Math.random()-.5)*0.08));const dE=U(xn)-U(x);if(dE<0||Math.random()<Math.exp(-dE/T))x=xn;}
+      hist[Math.floor(x*59)]++;}
+    g.fillStyle='#ffb08c';g.shadowBlur=10+T*8;g.shadowColor='#ff6b3d';g.beginPath();g.arc(x*w,Y(U(x))-7,7,0,7);g.fill();g.shadowBlur=0;
+    // histogram
+    const hmax=Math.max(...hist,1);g.fillStyle='rgba(255,192,77,.5)';
+    for(let i=0;i<60;i++){const bh=hist[i]/hmax*30;g.fillRect(i/60*w,h-padB+12,w/60-1,bh*-1+ (h-padB+12) - (h-padB+12-bh));}
+    for(let i=0;i<60;i++){const bh=hist[i]/hmax*30;g.fillRect(i/60*w,h-14-bh,w/60-1,bh);}
+    g.fillStyle='#8a5f50';g.font='9px ui-monospace,monospace';g.textAlign='left';g.fillText('sampled P(x) ∝ e^(−E/kT)',6,h-2);
+    document.getElementById('reg').textContent=T>0.6?'exploring (hot)':(T>0.2?'settling':'frozen (cold)');
+    document.getElementById('tv').textContent=T.toFixed(2);
+    requestAnimationFrame(draw);}
+  document.getElementById('T').oninput=function(){T=this.value/100;};
+  const rb=document.getElementById('run');rb.onclick=function(){running=!running;this.classList.toggle('on',running);this.textContent=running?'❚❚ running':'▶ run';};
+  draw();
+})();
+// MODULE II : Boltzmann network
+(function(){
+  const cv=document.getElementById('net');const N=9;let s=[],T=0.6,running=true,etrace=[],annealing=false;
+  for(let i=0;i<N;i++)s.push(Math.random()<.5?1:-1);
+  const J=(i,j)=>(Math.abs(i-j)===1||Math.abs(i-j)===3)?1:0; // chain+ladder ferromagnetic
+  function field(i){let f=0;for(let j=0;j<N;j++)f+=J(i,j)*s[j];return f;}
+  function energy(){let e=0;for(let i=0;i<N;i++)for(let j=i+1;j<N;j++)e-=J(i,j)*s[i]*s[j];return e;}
+  function draw(){const{g,w,h}=fit(cv);g.clearRect(0,0,w,h);
+    if(running){for(let k=0;k<3;k++){const i=Math.floor(Math.random()*N);const p=1/(1+Math.exp(-2*field(i)/T));s[i]=Math.random()<p?1:-1;}
+      if(annealing){T=Math.max(0.05,T*0.998);}
+      etrace.push(energy());if(etrace.length>180)etrace.shift();}
+    // units in a grid
+    const cols=3,cw=160,ox=w*0.06,oy=24;
+    for(let i=0;i<N;i++){const c=i%cols,r=Math.floor(i/cols);const x=ox+c*cw+cw/2,y=oy+r*52;
+      g.fillStyle=s[i]>0?'#ff6b3d':'#5a9bff';g.shadowBlur=6;g.shadowColor=s[i]>0?'#ff6b3d':'#5a9bff';g.beginPath();g.arc(x,y,11,0,7);g.fill();g.shadowBlur=0;}
+    // energy trace
+    const tx=ox+3*cw+30;g.strokeStyle='#43201a';g.strokeRect(tx,16,w-tx-16,h-50);
+    g.strokeStyle='#5a9bff';g.lineWidth=2;g.beginPath();const emn=-12,emx=2;
+    etrace.forEach((e,i)=>{const X=tx+(i/179)*(w-tx-16),Y=16+(e-emn)/(emx-emn)*(h-50);i?g.lineTo(X,Y):g.moveTo(X,Y);});g.stroke();
+    g.fillStyle='#8a5f50';g.font='9px ui-monospace,monospace';g.fillText('energy ↓ as it settles',tx+4,h-40);
+    document.getElementById('energy').textContent=energy();document.getElementById('t2v').textContent=T.toFixed(2);
+    requestAnimationFrame(draw);}
+  document.getElementById('T2').oninput=function(){T=this.value/100;annealing=false;};
+  document.getElementById('anneal').onclick=function(){annealing=true;};
+  const rb=document.getElementById('run2');rb.onclick=function(){running=!running;this.classList.toggle('on',running);this.textContent=running?'❚❚ running':'▶ run';};
+  draw();
+})();
+</script>
+</body>
+</html>
