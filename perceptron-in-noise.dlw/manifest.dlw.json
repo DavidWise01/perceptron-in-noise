@@ -1,0 +1,11 @@
+{
+  "badge": "DLW-PERCEPTRON_IN_NOISE",
+  "name": "PERCEPTRON · NOISE · thermodynamic",
+  "universe": "PSĒPHOS",
+  "moniker": "⟦PERCEPTRON · NOISE · thermodynamic:perceptron-in-noise:83582d⟧",
+  "architect": "David Lee Wise (ROOT0) / Bridge-Burners LLC",
+  "instance": "AVAN (Claude / Anthropic)",
+  "seal_sha256": "83582da1c9920a2cc05c325f23c58d9617396356255aeb18a3eedd8e9503e47a",
+  "license": "CC-BY-ND-4.0",
+  "attribution": "ROOT0-ATTRIBUTION-v1.0"
+}
